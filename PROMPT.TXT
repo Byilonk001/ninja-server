@@ -1,0 +1,65 @@
+# PROMPT IMPLEMENTASI CLIENT APP / TOOLS REQUEST PELANGGAN UNTUK NINJA SERVER
+
+Bertindaklah sebagai Senior Python Developer. Saya ingin membuat/mengintegrasikan fitur Client App (bisa berupa Script CLI, GUI Desktop, Bot Telegram, Web UI, atau Extensi) yang bertindak sebagai "Mstock Image Generator" untuk mengirimkan prompt ke "Ninja Server" dan menerima hasil gambar secara instan.
+
+Tolong buatkan kode client dan terapkan SOP berikut secara ketat:
+
+---
+
+### 1. SPESIFIKASI KONEKSI API KE NINJA SERVER
+* **Server URL**: `http://<IP_SERVER_ATAU_LOCALHOST>:8080/v1/generate`
+* **Method**: `POST`
+* **Format Payload (JSON Body)**:
+  ```json
+  {
+    "token": "<KODE_TOKEN_PELANGGAN>",
+    "prompt": "<TEKS_PROMPT_DESKRIPSI_GAMBAR>",
+    "target": "flow",
+    "flow_model": "Nano Banana Pro",
+    "flow_res": "2K"
+  }
+  ```
+* **Format Response**:
+  * **Status 200 OK**: Server langsung mengembalikan data biner (Binary Stream) file gambar (`image/jpeg` atau `image/png`).
+  * **Status 401 Unauthorized**: Token tidak valid atau belum terdaftar.
+  * **Status 429 Too Many Requests**: Pelanggan mengirimkan request sebelum cooldown 30 detik selesai.
+  * **Status 500 / Error lain**: Server sedang sibuk atau gagal memproses prompt.
+
+---
+
+### 2. SOP & LOGIKA CLIENT-SIDE (WAJIB DITERAPKAN)
+
+#### A. SOP Manajemen & Input Token:
+1. Sediakan input bagi pelanggan untuk memasukkan **Kode Token** (misalnya `VIP-SECRET-01` atau `njk_xxxx`).
+2. Simpan token tersebut ke file konfigurasi lokal (`client_config.json` atau storage aman) agar pelanggan tidak perlu mengetik ulang setiap kali membuka tools.
+3. Sebelum mengirim prompt, lakukan validasi lokal: pastikan token tidak kosong (minimal 5 karakter).
+
+#### B. SOP Rate Limiting & Cooldown 30 Detik (Sisi Klien):
+1. Setiap token hanya diizinkan meminta **1 gambar per 30 detik**.
+2. Di aplikasi pelanggan, buat **Timer/Countdown visual 30 detik** setelah tombol "Kirim/Generate" ditekan.
+3. Tombol generate harus otomatis berstatus `DISABLED` selama 30 detik dan menampilkan hitung mundur (misal: `"Tunggu 28s..."`).
+4. Jika server merespons kode **429 (Too Many Requests)**, tangkap pesan error dari server (misal: `"Tunggu X detik lagi..."`) dan tampilkan peringatan ramah kepada pelanggan.
+
+#### C. SOP Penerimaan & Penyimpanan Gambar:
+1. Ketika server merespons status `200 OK`, baca response sebagai *bytes*.
+2. Simpan file gambar tersebut ke folder lokal pelanggan (misal: `./hasil_generate/`).
+3. Buat nama file unik: `img_<timestamp>_<random>.jpg`.
+4. Segera buka/tampilkan preview gambar kepada pelanggan setelah download selesai.
+
+#### D. SOP Penanganan Koneksi & Timeout:
+1. Karena proses AI di server membutuhkan waktu rendering, set timeout request HTTP minimal **90 hingga 120 detik**.
+2. Jika terjadi `ConnectionError` (Server offline/tidak bisa diakses), berikan instruksi: `"Server sedang offline atau alamat IP salah. Hubungi admin."`
+
+---
+
+### 3. CONTOH IMPLEMENTASI KODE YANG SAYA INGINKAN
+
+Tolong buatkan script Python lengkap untuk sisi pelanggan yang mencakup:
+1. Fungsi `request_generate(prompt, token, output_folder)` dengan error handling lengkap (200, 401, 429, Timeout).
+2. Mekanisme auto-cooldown 30 detik.
+3. Antarmuka sederhana (GUI Tkinter/CustomTkinter ATAU Script Terminal Interaktif) yang memiliki:
+   - Kolom Input Token (tersimpan otomatis)
+   - Kolom Input Prompt
+   - Status Bar / Countdown timer 30 detik
+   - Indikator saat menunggu hasil
+   - Auto-open file gambar setelah selesai didownload.
