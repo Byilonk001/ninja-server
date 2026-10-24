@@ -1,0 +1,7 @@
+.gitinconito/
+.venv/
+__pycache__/
+*.spec
+*.msi
+ngrok.yml
+
